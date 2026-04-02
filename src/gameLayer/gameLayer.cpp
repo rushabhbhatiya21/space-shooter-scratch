@@ -59,9 +59,14 @@ gl2d::Texture backgroudTexture[BACKGROUNDS];
 TileRenderer tileRenderer[BACKGROUNDS];
 
 gl2d::Texture hpItemTexture;
+gl2d::Texture armourItemTexture;
 
 Sound shootSound;
 
+std::unordered_map<ItemTypes, gl2d::Texture> itemTypeToTexture = {};
+
+
+#pragma region functions
 
 bool intersectBullet(glm::vec2 bulletPos, glm::vec2 shipPos, float shipSize)
 {
@@ -98,6 +103,7 @@ void spawnEnemy()
 	data.enemies.push_back(e);
 }
 
+#pragma endregion
 
 bool initGame()
 {
@@ -132,6 +138,7 @@ bool initGame()
 	healthTexture.loadFromFile(RESOURCES_PATH "health.png", true);
 
 	hpItemTexture.loadFromFile(RESOURCES_PATH "items/hp.png", true);
+	armourItemTexture.loadFromFile(RESOURCES_PATH "items/armour.png", true);
 
 	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
 	SetSoundVolume(shootSound, 0.3f);
@@ -151,6 +158,15 @@ bool initGame()
 	tileRenderer[1].paralaxStrength = 0.5;
 	tileRenderer[2].paralaxStrength = 0.7;
 	//tileRenderer[3].paralaxStrength = 0.7;
+
+#pragma endregion
+
+
+#pragma region item type to texture map
+
+	itemTypeToTexture[ItemTypes::health] = hpItemTexture;
+	itemTypeToTexture[ItemTypes::armour] = armourItemTexture;
+
 
 #pragma endregion
 
@@ -308,6 +324,7 @@ bool gameLogic(float deltaTime)
 					{
 						//handle item before enemy erase
 						Item hp;
+						hp.type = getRandomItemType();
 						hp.position = data.enemies[e].position;
 						data.items.push_back(hp);
 
@@ -433,9 +450,25 @@ bool gameLogic(float deltaTime)
 			//destroy item gameobject
 			data.items.erase(data.items.begin() + i);
 
-			//add player health
-			data.playerHealth += 0.5f;
-			data.playerHealth = glm::clamp(data.playerHealth, 0.f, 1.f);
+			//apply item
+			switch (data.items[i].type)
+			{
+			case ItemTypes::none:
+				break;
+
+			case ItemTypes::health:
+				data.playerHealth += 50.f;
+				break;
+
+			case ItemTypes::armour:
+				data.playerArmour += 10.f;
+				break;
+
+			default:
+				break;
+			}
+
+			data.playerHealth = glm::clamp(data.playerHealth, 0.f, data.playerMaxHealth);
 		}
 	}
 
@@ -480,7 +513,8 @@ bool gameLogic(float deltaTime)
 
 	for (auto& i : data.items)
 	{
-		i.render(renderer, hpItemTexture);
+		gl2d::Texture tex = itemTypeToTexture[i.type];
+		i.render(renderer, tex);
 	}
 
 #pragma endregion
