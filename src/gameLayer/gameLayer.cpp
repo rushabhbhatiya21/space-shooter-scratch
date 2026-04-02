@@ -1,4 +1,4 @@
-#define GLM_ENABLE_EXPERIMENTAL
+﻿#define GLM_ENABLE_EXPERIMENTAL
 #include "gameLayer.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -22,16 +22,20 @@
 
 struct GamePlayData {
 	glm::vec2 playerPos = { 100,100 };
+	//glm::vec2 playerPrevPos = {};
+	//glm::vec2 playerVelocity = {};
 
 	std::vector<Bullet> bullets;
 	std::vector<Enemy> enemies;
 	std::vector<Item> items;
 
-	float playerSpeed = 250.f;
-	float playerHealth = 1.f;
-	float playerDamage = 0.5f;
-	float playerHealthRegen = 0.01f;
-	float playerBulletSpeed = 600.f;
+	float playerSpeed = 300.f;        // ↑ more responsive movement
+	float playerMaxHealth = 100.f;
+	float playerHealth = playerMaxHealth;
+	float playerArmour = 50.f;
+	float playerDamage = 65.f;       // ↑ enemies die faster
+	float playerHealthRegen = 0.5f; // ↓ regen (less forgiving)
+	float playerBulletSpeed = 900.f;  // ↑ snappy shooting
 
 	float spawnEnemyTimerSeconds = 3.f;
 };
@@ -40,7 +44,7 @@ GamePlayData data;
 
 gl2d::Renderer2D renderer;
 
-constexpr int BACKGROUNDS = 4;
+constexpr int BACKGROUNDS = 3;
 
 gl2d::Texture healthBarTexture;
 gl2d::Texture healthTexture;
@@ -67,7 +71,7 @@ bool intersectBullet(glm::vec2 bulletPos, glm::vec2 shipPos, float shipSize)
 void restartGame()
 {
 	data = {};
-	renderer.currentCamera.follow(data.playerPos, 550, 0, 0, renderer.windowW, renderer.windowH);
+	renderer.currentCamera.follow(data.playerPos, 550, 0, 0, renderer.windowW, renderer.windowH, 0.f);
 }
 
 void spawnEnemy()
@@ -82,14 +86,14 @@ void spawnEnemy()
 		glm::rotate(glm::mat4(1.f), glm::radians((float)(rand() % 360)), glm::vec3(0, 0, 1)));
 
 	e.position += offset;
-
-	e.speed = e.speed + rand() % 100;
-	e.turnSpeed = 2.2f + (rand() & 1000) / 500.f;
 	e.type = shipTypes[rand() % 4];
-	e.fireRange = 700.f + (rand() % 1000) / 2.f;
-	e.fireThreashold = 0.8f;
-	e.fireTimeReset = 0.1 + (rand() % 1000) / 2000.f;
-	e.bulletSpeed = rand() % 3000 + 1000.f;
+
+	//e.speed = e.speed + rand() % 100;
+	//e.turnSpeed = 2.2f + (rand() & 1000) / 500.f;
+	//e.fireRange = 700.f + (rand() % 1000) / 2.f;
+	//e.fireThreashold = 0.8f;
+	//e.fireTimeReset = 0.1 + (rand() % 1000) / 2000.f;
+	//e.bulletSpeed = rand() % 3000 + 1000.f;
 
 	data.enemies.push_back(e);
 }
@@ -97,14 +101,26 @@ void spawnEnemy()
 
 bool initGame()
 {
-	printf("Starting game...");
+
+#pragma region lib init
+
 	//initializing stuff for the renderer
 	gl2d::init();
 
 	//initializing audio
 	InitAudioDevice();
 
+#pragma endregion
+
+
+#pragma region renderer
+
 	renderer.create();
+
+#pragma endregion
+
+
+#pragma region textures loading
 
 	spaceShipTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
 	spaceShipAtlas = gl2d::TextureAtlasPadding(5, 2, spaceShipTexture.GetSize().x, spaceShipTexture.GetSize().y);
@@ -123,21 +139,23 @@ bool initGame()
 	backgroudTexture[0].loadFromFile(RESOURCES_PATH "background1.png", true);
 	backgroudTexture[1].loadFromFile(RESOURCES_PATH "background2.png", true);
 	backgroudTexture[2].loadFromFile(RESOURCES_PATH "background3.png", true);
-	backgroudTexture[3].loadFromFile(RESOURCES_PATH "background4.png", true);
+	//backgroudTexture[3].loadFromFile(RESOURCES_PATH "background4.png", true);
 
 
 	tileRenderer[0].texture = backgroudTexture[0];
 	tileRenderer[1].texture = backgroudTexture[1];
 	tileRenderer[2].texture = backgroudTexture[2];
-	tileRenderer[3].texture = backgroudTexture[3];
+	//tileRenderer[3].texture = backgroudTexture[3];
 
 	tileRenderer[0].paralaxStrength = 0;
-	tileRenderer[1].paralaxStrength = 0.2;
-	tileRenderer[2].paralaxStrength = 0.4;
-	tileRenderer[3].paralaxStrength = 0.7;
+	tileRenderer[1].paralaxStrength = 0.5;
+	tileRenderer[2].paralaxStrength = 0.7;
+	//tileRenderer[3].paralaxStrength = 0.7;
+
+#pragma endregion
+
 
 	restartGame();
-
 	
 	return true;
 }
@@ -145,6 +163,7 @@ bool initGame()
 
 bool gameLogic(float deltaTime)
 {
+
 #pragma region init stuff
 
 	int w = 0; int h = 0;
@@ -209,7 +228,7 @@ bool gameLogic(float deltaTime)
 
 #pragma region follow
 
-	renderer.currentCamera.follow(data.playerPos, deltaTime * 450, 10, 50, w, h);
+	renderer.currentCamera.follow(data.playerPos, deltaTime * 450, 10, 50, w, h, deltaTime);
 
 #pragma endregion
 
@@ -259,6 +278,7 @@ bool gameLogic(float deltaTime)
 		b.position = data.playerPos;
 		b.fireDirection = mouseDirection;
 		b.speed = data.playerBulletSpeed;
+		b.damage = data.playerDamage;
 
 		PlaySound(shootSound);
 
@@ -283,8 +303,8 @@ bool gameLogic(float deltaTime)
 				{
 					//destoy bullet
 					data.bullets.erase(data.bullets.begin() + i);
-					data.enemies[e].life -= data.playerDamage;
-					if (data.enemies[e].life <= 0)
+					data.enemies[e].health -= data.bullets[i].damage;
+					if (data.enemies[e].health <= 0)
 					{
 						//handle item before enemy erase
 						Item hp;
@@ -306,8 +326,23 @@ bool gameLogic(float deltaTime)
 		{
 			if (intersectBullet(data.bullets[i].position, data.playerPos, playerShipSize))
 			{
+				if (data.playerArmour > 0.f)
+				{
+					if (data.playerArmour >= data.bullets[i].damage)
+					{
+						data.playerArmour -= data.bullets[i].damage;
+					}
+					else
+					{
+						data.playerArmour = 0.f;
+						data.playerHealth -= glm::abs(data.bullets[i].damage - data.playerArmour);
+					}
+				}
+				else
+				{
+					data.playerHealth -= data.bullets[i].damage;
+				}
 				data.bullets.erase(data.bullets.begin() + i);
-				data.playerHealth -= 0.1;
 				i--;
 				continue;
 			}
@@ -323,8 +358,8 @@ bool gameLogic(float deltaTime)
 	}
 	else
 	{
-		data.playerHealth += deltaTime * data.playerHealthRegen;
-		data.playerHealth = glm::clamp(data.playerHealth, 0.f, 1.f);
+		//data.playerHealth += deltaTime * data.playerHealthRegen;
+		data.playerHealth = glm::clamp(data.playerHealth, 0.f, data.playerMaxHealth);
 	}
 
 #pragma endregion
@@ -358,13 +393,27 @@ bool gameLogic(float deltaTime)
 			continue;
 		}
 
+		//enemy should shoot or not
 		if (data.enemies[i].update(deltaTime, data.playerPos))
 		{
 			Bullet b;
 			b.position = data.enemies[i].position;
-			b.fireDirection = data.enemies[i].viewDirection;
+
+			//spread bullets randomly based on distance
+			glm::vec2 dir = data.enemies[i].viewDirection;
+			// distance to player
+			float dist = glm::distance(data.enemies[i].position, data.playerPos);
+			// normalize distance into 0 → 1 range (tweak maxDist)
+			float maxDist = 600.0f;
+			float t = glm::clamp(dist / maxDist, 0.0f, 1.0f);
+			float spread = data.enemies[i].minSpread + (data.enemies[i].maxSpread - data.enemies[i].minSpread) * t;
+			dir.x += ((rand() % 100) / 100.f - 0.5f) * spread;
+			dir.y += ((rand() % 100) / 100.f - 0.5f) * spread;
+			b.fireDirection = glm::normalize(dir);
+
 			b.isEnemy = true;
 			b.speed = data.enemies[i].bulletSpeed;
+			b.damage = data.enemies[i].damage;
 
 			if (!IsSoundPlaying(shootSound)) PlaySound(shootSound);
 
@@ -402,6 +451,7 @@ bool gameLogic(float deltaTime)
 	}
 
 #pragma endregion
+
 
 #pragma region render ship
 
@@ -466,6 +516,8 @@ bool gameLogic(float deltaTime)
 
 	ImGui::Begin("debug");
 
+	ImGui::Text("Armour: %d", (int)data.playerArmour);
+	ImGui::Text("Health: %d", (int)data.playerHealth);
 	ImGui::Text("Bullets count: %d", (int)data.bullets.size());
 	ImGui::Text("Enemies count: %d", (int)data.enemies.size());
 	ImGui::Text("Items count: %d", (int)data.items.size());

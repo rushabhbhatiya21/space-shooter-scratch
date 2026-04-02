@@ -1,11 +1,12 @@
-#pragma once
+﻿#pragma once
 #include <gl2d/gl2d.h>
 
 struct Bullet
 {
 	bool isEnemy = 0;
-	float bulletSize = 30.f;
-	float speed = 1000.f;
+	float bulletSize = 12.f;          // ↓ MUCH better (30 is huge)
+	float speed = 900.f;              // ↓ slightly (less chaotic)
+	float damage = 0.f;
 
 	glm::vec2 position = {};
 	glm::vec2 fireDirection = {};

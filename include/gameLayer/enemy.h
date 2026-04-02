@@ -1,16 +1,21 @@
-#pragma once
+﻿#pragma once
 #include <gl2d/gl2d.h>
 
 struct Enemy {
-	float speed = 200.f;
-	float turnSpeed = 5.f;
-	float fireThreashold = 0.8f;
-	float fireRange = 1000.f;
-	float firedTime = 2.f;
-	float fireTimeReset = 0.5f;
-	float bulletSpeed = 500.f;
+	float speed = 220.f;              // slight ↑ (keeps pressure)
+	float turnSpeed = 7.f;            // ↑ reacts faster to player
+	float fireThreashold = 0.9f;      // ↑ must aim properly (feels fair)
+	float fireRange = 600.f;          // ↓ no sniping from far away
 
-	float life = 1.f;
+	float firedTime = 0.f;            // start ready to shoot
+	float fireTimeReset = 1.2f;       // ↑ slower fire rate (fairness)
+
+	float minSpread = 0.02f;  // very accurate up close
+	float maxSpread = 0.15f;  // inaccurate at range
+
+	float bulletSpeed = 700.f;        // ↑ harder to dodge but not insane
+	float health = 80.f;                // ↓ less tanky (more satisfying kills)
+	float damage = 10.f;
 
 	glm::ivec2 type = {};
 	glm::vec2 position = {};

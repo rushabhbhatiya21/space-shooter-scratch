@@ -27,10 +27,10 @@ void Enemy::renderHealthBar(gl2d::Renderer2D& renderer, gl2d::Texture& healthTex
 	renderer.renderRectangle(rect, healthBarTexture);
 
 	glm::vec4 hpRect = rect;
-	hpRect.z *= life / 1.f; // scale width
+	hpRect.z *= health / 1.f; // scale width
 
 	glm::vec4 texCoords = { 0,1,1,0 };
-	texCoords.z *= life / 1.f;
+	texCoords.z *= health / 1.f;
 
 	renderer.renderRectangle(hpRect, healthTexture, Colors_White, {}, {}, texCoords);
 }
@@ -86,7 +86,7 @@ bool Enemy::update(float deltaTime, glm::vec2 playerPos)
 	}
 
 	float length = glm::length(newDirection);
-	viewDirection = glm::normalize(newDirection);
+	//viewDirection = glm::normalize(newDirection);
 	length = glm::clamp(length, 0.1f, 3.f);
 
 	viewDirection = glm::normalize(newDirection);

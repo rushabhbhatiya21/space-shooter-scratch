@@ -286,7 +286,7 @@ namespace gl2d
 		//Min is the minimum distance
 		//for the camera to start moving and max is the maximum possible distance.
 		//w and h are the dimensions of the window
-		void follow(glm::vec2 pos, float speed, float min, float max, float w, float h);
+		void follow(glm::vec2 pos, float speed, float min, float max, float w, float h, float dt);
 	};
 
 

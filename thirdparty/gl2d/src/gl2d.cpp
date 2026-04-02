@@ -2068,51 +2068,41 @@ namespace gl2d
 	//	return m; //todo not tested, add rotation
 	//}
 
-	void Camera::follow(glm::vec2 pos, float speed, float min, float max, float w, float h)
+	void Camera::follow(glm::vec2 pos, float speed, float min, float max, float w, float h, float dt)
 	{
 		pos.x -= w / 2.f;
 		pos.y -= h / 2.f;
 
 		glm::vec2 delta = pos - position;
-		bool signX = delta.x >= 0;
-		bool signY = delta.y >= 0;
-
 		float len = glm::length(delta);
 
-		delta = glm::normalize(delta);
-
-		if (len < min * 2)
+		// Snap when very close
+		if (len < 0.5f)
 		{
-			speed /= 4.f;
-		}
-		else if (len < min * 4)
-		{
-			speed /= 2.f;
+			position = pos;
+			position.x = round(position.x);
+			position.y = round(position.y);
+			return;
 		}
 
-		if (len > min)
-		{
-			if (len > max)
-			{
-				len = max;
-				position = pos - (max * delta);
-				position += delta * speed;
-			}
-			else
-			{
-				position += delta * speed;
+		// Deadzone
+		if (len <= min)
+			return;
 
+		// Exponential lerp — smooth ease-out, frame-rate independent
+		// smoothing: 0.0 = instant, higher = more lag (try 8.0 - 16.0)
+		float smoothing = 10.f;
+		position = glm::mix(position, pos, 1.f - exp(-smoothing * dt));
 
-			}
+		// Enforce max distance (hard cap)
+		glm::vec2 newDelta = pos - position;
+		float newLen = glm::length(newDelta);
+		if (newLen > max)
+			position = pos - (newDelta / newLen) * max;
 
-			glm::vec2 delta2 = pos - position;
-			bool signX2 = delta.x >= 0;
-			bool signY2 = delta.y >= 0;
-			if (signX2 != signX || signY2 != signY || glm::length(delta2) > len)
-			{
-				position = pos;
-			}
-		}
+		// Pixel snap last, after all movement
+		position.x = round(position.x);
+		position.y = round(position.y);
 	}
 
 	glm::vec2 internal::convertPoint(const Camera &camera, const glm::vec2& p, float windowW, float windowH)
