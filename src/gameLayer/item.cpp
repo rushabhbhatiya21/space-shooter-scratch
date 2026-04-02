@@ -4,7 +4,7 @@
 void Item::render(gl2d::Renderer2D& renderer, gl2d::Texture texture)
 {
 	renderer.renderRectangle(
-		{ position, 1, 1 },
+		{ position - glm::vec2(50, 50), 100, 100},
 		texture,
 		Colors_White,
 		{},

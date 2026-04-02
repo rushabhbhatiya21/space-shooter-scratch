@@ -27,11 +27,11 @@ struct GamePlayData {
 	std::vector<Enemy> enemies;
 	std::vector<Item> items;
 
-	float playerSpeed = 500.f;
+	float playerSpeed = 250.f;
 	float playerHealth = 1.f;
 	float playerDamage = 0.5f;
-	float playerHealthRegen = 0.05f;
-	float playerBulletSpeed = 1000.f;
+	float playerHealthRegen = 0.01f;
+	float playerBulletSpeed = 600.f;
 
 	float spawnEnemyTimerSeconds = 3.f;
 };
@@ -86,7 +86,8 @@ void spawnEnemy()
 	e.speed = e.speed + rand() % 100;
 	e.turnSpeed = 2.2f + (rand() & 1000) / 500.f;
 	e.type = shipTypes[rand() % 4];
-	e.fireRange = 1.5 + (rand() % 1000) / 2000.f;
+	e.fireRange = 700.f + (rand() % 1000) / 2.f;
+	e.fireThreashold = 0.8f;
 	e.fireTimeReset = 0.1 + (rand() % 1000) / 2000.f;
 	e.bulletSpeed = rand() % 3000 + 1000.f;
 
@@ -96,6 +97,7 @@ void spawnEnemy()
 
 bool initGame()
 {
+	printf("Starting game...");
 	//initializing stuff for the renderer
 	gl2d::init();
 
@@ -247,8 +249,8 @@ bool gameLogic(float deltaTime)
 
 #pragma region handle bullets
 
-	constexpr float playerShipSize = 100.f;
-	constexpr float enemyShipSize = 100.f;
+	constexpr float playerShipSize = 50.f;
+	constexpr float enemyShipSize = 50.f;
 
 	if (platform::isLMousePressed())
 	{
@@ -284,6 +286,11 @@ bool gameLogic(float deltaTime)
 					data.enemies[e].life -= data.playerDamage;
 					if (data.enemies[e].life <= 0)
 					{
+						//handle item before enemy erase
+						Item hp;
+						hp.position = data.enemies[e].position;
+						data.items.push_back(hp);
+
 						//kill enemy
 						data.enemies.erase(data.enemies.begin() + e);
 					}
@@ -325,32 +332,28 @@ bool gameLogic(float deltaTime)
 
 #pragma region handle enemies
 
-	if (data.enemies.size() < 15)
-	{
-		data.spawnEnemyTimerSeconds -= deltaTime;
+	//if (data.enemies.size() < 15)
+	//{
+	//	data.spawnEnemyTimerSeconds -= deltaTime;
 
-		if (data.spawnEnemyTimerSeconds < 0)
-		{
-			data.spawnEnemyTimerSeconds = rand() % 5 + 1;
-			spawnEnemy();
+	//	if (data.spawnEnemyTimerSeconds < 0)
+	//	{
+	//		data.spawnEnemyTimerSeconds = rand() % 5 + 1;
+	//		spawnEnemy();
 
-			if (rand() % 3 == 0)
-			{
-				spawnEnemy();
-			}
-		}
-	}
+	//		if (rand() % 3 == 0)
+	//		{
+	//			spawnEnemy();
+	//		}
+	//	}
+	//}
 
 	for (int i = 0; i < data.enemies.size(); i++)
 	{
 		if (glm::distance(data.enemies[i].position, data.playerPos) > 4000.f)
 		{
+			//kill enemy
 			data.enemies.erase(data.enemies.begin() + i);
-			//handle item on enemy erase
-			Item hp;
-			hp.position = data.enemies[i].position;
-			data.items.push_back(hp);
-
 			i--;
 			continue;
 		}
@@ -372,15 +375,33 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
+#pragma region handle items
+
+	for (int i = 0; i < data.items.size(); i++)
+	{
+		if (glm::distance(data.items[i].position, data.playerPos) <= data.items[i].itemPickupRange)
+		{
+			//destroy item gameobject
+			data.items.erase(data.items.begin() + i);
+
+			//add player health
+			data.playerHealth += 0.5f;
+			data.playerHealth = glm::clamp(data.playerHealth, 0.f, 1.f);
+		}
+	}
+
+#pragma endregion
+
+
 #pragma region render enemies
 
 	for (auto& e : data.enemies)
 	{
 		e.render(renderer, spaceShipTexture, spaceShipAtlas, enemyShipSize);
+		e.renderHealthBar(renderer, healthTexture, healthBarTexture, data.playerPos);
 	}
 
 #pragma endregion
-
 
 #pragma region render ship
 

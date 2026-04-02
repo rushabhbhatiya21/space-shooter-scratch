@@ -4,7 +4,7 @@
 struct Bullet
 {
 	bool isEnemy = 0;
-	float bulletSize = 40.f;
+	float bulletSize = 30.f;
 	float speed = 1000.f;
 
 	glm::vec2 position = {};

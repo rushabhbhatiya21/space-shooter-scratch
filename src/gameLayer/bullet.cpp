@@ -18,7 +18,7 @@ void Bullet::render(gl2d::Renderer2D& renderer, gl2d::Texture bulletsTexture, gl
 		glm::vec4 color(1 * (i + 4) / 5.f, 1 * (i + 4) / 5.f, 1 * (i + 4) / 5.f, (i + 1) / 5.f);
 
 		renderer.renderRectangle(
-			{ position - glm::vec2(50,50) + (float)i * 25.f * fireDirection, bulletSize, bulletSize },
+			{ position - glm::vec2(15,15) + (float)i * 25.f * fireDirection, bulletSize, bulletSize },
 			bulletsTexture,
 			color,
 			{},
