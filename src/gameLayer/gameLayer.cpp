@@ -17,6 +17,7 @@
 #include <tileRenderer.h>
 #include <bullet.h>
 #include <enemy.h>
+#include <item.h>
 
 
 struct GamePlayData {
@@ -24,8 +25,9 @@ struct GamePlayData {
 
 	std::vector<Bullet> bullets;
 	std::vector<Enemy> enemies;
+	std::vector<Item> items;
 
-	float playerSpeed = 1000.f;
+	float playerSpeed = 500.f;
 	float playerHealth = 1.f;
 	float playerDamage = 0.5f;
 	float playerHealthRegen = 0.05f;
@@ -50,8 +52,9 @@ gl2d::Texture bulletTexture;
 gl2d::TextureAtlasPadding bulletAtlas;
 
 gl2d::Texture backgroudTexture[BACKGROUNDS];
-
 TileRenderer tileRenderer[BACKGROUNDS];
+
+gl2d::Texture hpItemTexture;
 
 Sound shootSound;
 
@@ -90,6 +93,7 @@ void spawnEnemy()
 	data.enemies.push_back(e);
 }
 
+
 bool initGame()
 {
 	//initializing stuff for the renderer
@@ -108,6 +112,8 @@ bool initGame()
 
 	healthBarTexture.loadFromFile(RESOURCES_PATH "healthBar.png", true);
 	healthTexture.loadFromFile(RESOURCES_PATH "health.png", true);
+
+	hpItemTexture.loadFromFile(RESOURCES_PATH "items/hp.png", true);
 
 	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
 	SetSoundVolume(shootSound, 0.3f);
@@ -340,6 +346,11 @@ bool gameLogic(float deltaTime)
 		if (glm::distance(data.enemies[i].position, data.playerPos) > 4000.f)
 		{
 			data.enemies.erase(data.enemies.begin() + i);
+			//handle item on enemy erase
+			Item hp;
+			hp.position = data.enemies[i].position;
+			data.items.push_back(hp);
+
 			i--;
 			continue;
 		}
@@ -394,6 +405,16 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
+#pragma region render item
+
+	for (auto& i : data.items)
+	{
+		i.render(renderer, hpItemTexture);
+	}
+
+#pragma endregion
+
+
 #pragma region ui
 
 	renderer.pushCamera();
@@ -426,10 +447,18 @@ bool gameLogic(float deltaTime)
 
 	ImGui::Text("Bullets count: %d", (int)data.bullets.size());
 	ImGui::Text("Enemies count: %d", (int)data.enemies.size());
+	ImGui::Text("Items count: %d", (int)data.items.size());
 
 	if (ImGui::Button("Spawn Enemy"))
 	{
 		spawnEnemy();
+	}
+
+	if (ImGui::Button("Spawn Item"))
+	{
+		Item hp;
+		hp.position = data.playerPos;
+		data.items.push_back(hp);
 	}
 
 	if (ImGui::Button("Restart Game"))

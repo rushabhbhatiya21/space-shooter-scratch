@@ -2,7 +2,7 @@
 #include <gl2d/gl2d.h>
 
 struct Enemy {
-	float speed = 700.f;
+	float speed = 400.f;
 	float turnSpeed = 5.f;
 	float fireRange = 10.f;
 	float firedTime = 1.f;
@@ -16,7 +16,7 @@ struct Enemy {
 
 	glm::vec2 viewDirection = { 1,0 };
 
-	void render(gl2d::Renderer2D& renderer, gl2d::Texture &sprites, gl2d::TextureAtlasPadding &atlas, float shipSize);
+	void render(gl2d::Renderer2D &renderer, gl2d::Texture &sprites, gl2d::TextureAtlasPadding &atlas, float shipSize);
 
 	bool update(float deltaTime, glm::vec2 playerPos);
 };

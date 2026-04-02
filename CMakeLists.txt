@@ -61,7 +61,7 @@ else()
 
 endif()
 
-target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES}  "include/gameLayer/bullet.h" "include/gameLayer/enemy.h" "include/gameLayer/gameLayer.h" "include/gameLayer/tileRenderer.h" "include/platform/otherPlatformFunctions.h" "include/platform/platformInput.h" "include/platform/platformTools.h" "src/gameLayer/bullet.cpp" "src/gameLayer/enemy.cpp" "src/gameLayer/gameLayer.cpp" "src/gameLayer/tileRenderer.cpp" "src/platform/glfwMain.cpp" "src/platform/opterPlatformFunctions.cpp" "src/platform/platformInput.cpp")
+target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES}  "include/gameLayer/bullet.h" "include/gameLayer/enemy.h" "include/gameLayer/gameLayer.h" "include/gameLayer/tileRenderer.h" "include/platform/otherPlatformFunctions.h" "include/platform/platformInput.h" "include/platform/platformTools.h" "src/gameLayer/bullet.cpp" "src/gameLayer/enemy.cpp" "src/gameLayer/gameLayer.cpp" "src/gameLayer/tileRenderer.cpp" "src/platform/glfwMain.cpp" "src/platform/opterPlatformFunctions.cpp" "src/platform/platformInput.cpp" "include/gameLayer/item.h" "src/gameLayer/item.cpp")
 
 
 if(MSVC) # If using the VS compiler...
