@@ -1,6 +1,14 @@
 ﻿#pragma once
 #include <gl2d/gl2d.h>
 
+enum class EnemyState
+{
+	PATROL,
+	CHASE,
+	ORBIT,
+	PANIC
+};
+
 struct Enemy {
 	float speed = 220.f;              // slight ↑ (keeps pressure)
 	float turnSpeed = 7.f;            // ↑ reacts faster to player
@@ -16,6 +24,11 @@ struct Enemy {
 	float bulletSpeed = 700.f;        // ↑ harder to dodge but not insane
 	float health = 80.f;                // ↓ less tanky (more satisfying kills)
 	float damage = 10.f;
+
+	float detectRange = 900.f;
+
+	EnemyState currentState = EnemyState::PATROL;
+
 
 	glm::ivec2 type = {};
 	glm::vec2 position = {};
