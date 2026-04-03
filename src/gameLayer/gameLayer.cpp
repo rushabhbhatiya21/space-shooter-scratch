@@ -22,23 +22,32 @@
 
 struct GamePlayData {
 	glm::vec2 playerPos = { 100,100 };
-	//glm::vec2 playerPrevPos = {};
-	//glm::vec2 playerVelocity = {};
 
 	std::vector<Bullet> bullets;
 	std::vector<Enemy> enemies;
 	std::vector<Item> items;
 
-	float playerSpeed = 300.f;        // ↑ more responsive movement
+	float playerSpeed = 300.f;        // more responsive movement
+
 	float playerMaxHealth = 100.f;
 	float playerHealth = playerMaxHealth;
 	float playerArmour = 50.f;
-	float playerDamage = 65.f;       // ↑ enemies die faster
-	float playerHealthRegen = 0.5f; // ↓ regen (less forgiving)
-	float playerBulletSpeed = 900.f;  // ↑ snappy shooting
+	float playerHealthRegen = 0.5f; // regen (less forgiving)
+
+	float playerBaseDamage = 65.f;
+	float playerDamage = 65.f;       // enemies die faster
+	bool isDamageBoostActive = false;
+
+	float playerBulletSpeed = 900.f;  // snappy shooting
+
+	float playerBoostRemainingTime = 0.f;
+	float playerBoostTotalTime = 10.f;
 
 	float spawnEnemyTimerSeconds = 3.f;
 };
+
+
+#pragma region init variables
 
 GamePlayData data;
 
@@ -60,10 +69,14 @@ TileRenderer tileRenderer[BACKGROUNDS];
 
 gl2d::Texture hpItemTexture;
 gl2d::Texture armourItemTexture;
+gl2d::Texture damageBoostItemTexture;
 
 Sound shootSound;
 
 std::unordered_map<ItemTypes, gl2d::Texture> itemTypeToTexture = {};
+
+
+#pragma endregion
 
 
 #pragma region functions
@@ -108,7 +121,7 @@ void spawnEnemy()
 bool initGame()
 {
 
-#pragma region lib init
+#pragma region init libraries
 
 	//initializing stuff for the renderer
 	gl2d::init();
@@ -139,6 +152,7 @@ bool initGame()
 
 	hpItemTexture.loadFromFile(RESOURCES_PATH "items/hp.png", true);
 	armourItemTexture.loadFromFile(RESOURCES_PATH "items/armour.png", true);
+	damageBoostItemTexture.loadFromFile(RESOURCES_PATH "items/damage.png", true);
 
 	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
 	SetSoundVolume(shootSound, 0.3f);
@@ -166,6 +180,7 @@ bool initGame()
 
 	itemTypeToTexture[ItemTypes::health] = hpItemTexture;
 	itemTypeToTexture[ItemTypes::armour] = armourItemTexture;
+	itemTypeToTexture[ItemTypes::damageBoost] = damageBoostItemTexture;
 
 
 #pragma endregion
@@ -282,6 +297,22 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
+#pragma region handle boost time
+
+	if (data.playerBoostRemainingTime > 0)
+	{
+		data.playerBoostRemainingTime -= deltaTime;
+		if (data.playerBoostRemainingTime <= 0)
+		{
+			data.playerDamage = data.playerBaseDamage;
+			data.isDamageBoostActive = false;
+		}
+
+	}
+
+#pragma endregion
+
+
 #pragma region handle bullets
 
 	constexpr float playerShipSize = 50.f;
@@ -323,10 +354,18 @@ bool gameLogic(float deltaTime)
 					if (data.enemies[e].health <= 0)
 					{
 						//handle item before enemy erase
-						Item hp;
-						hp.type = getRandomItemType();
-						hp.position = data.enemies[e].position;
-						data.items.push_back(hp);
+						ItemTypes type = getRandomItemType();
+						//ItemTypes type = ItemTypes::damageBoost;
+
+						bool skipDrop = (type == ItemTypes::damageBoost && data.isDamageBoostActive);
+
+						if (!skipDrop)
+						{
+							Item hp;
+							hp.type = type;
+							hp.position = data.enemies[e].position;
+							data.items.push_back(hp);
+						}
 
 						//kill enemy
 						data.enemies.erase(data.enemies.begin() + e);
@@ -375,7 +414,6 @@ bool gameLogic(float deltaTime)
 	}
 	else
 	{
-		//data.playerHealth += deltaTime * data.playerHealthRegen;
 		data.playerHealth = glm::clamp(data.playerHealth, 0.f, data.playerMaxHealth);
 	}
 
@@ -420,7 +458,7 @@ bool gameLogic(float deltaTime)
 			glm::vec2 dir = data.enemies[i].viewDirection;
 			// distance to player
 			float dist = glm::distance(data.enemies[i].position, data.playerPos);
-			// normalize distance into 0 → 1 range (tweak maxDist)
+			// normalize distance into 0 - 1 range (tweak maxDist)
 			float maxDist = 600.0f;
 			float t = glm::clamp(dist / maxDist, 0.0f, 1.0f);
 			float spread = data.enemies[i].minSpread + (data.enemies[i].maxSpread - data.enemies[i].minSpread) * t;
@@ -462,6 +500,14 @@ bool gameLogic(float deltaTime)
 
 			case ItemTypes::armour:
 				data.playerArmour += 10.f;
+				break;
+
+			case ItemTypes::damageBoost:
+				data.playerDamage *= 2.f;
+
+	 data.playerDamage = glm::clamp(data.playerDamage, data.playerBaseDamage, data.playerBaseDamage * 2);
+				data.playerBoostRemainingTime = data.playerBoostTotalTime;
+				data.isDamageBoostActive = true;
 				break;
 
 			default:
@@ -545,6 +591,7 @@ bool gameLogic(float deltaTime)
 
 	renderer.flush();
 
+#pragma region imgui debug
 
 	//ImGui::ShowDemoWindow();
 
@@ -552,6 +599,9 @@ bool gameLogic(float deltaTime)
 
 	ImGui::Text("Armour: %d", (int)data.playerArmour);
 	ImGui::Text("Health: %d", (int)data.playerHealth);
+	ImGui::Text("Damage: %d", (int)data.playerDamage);
+	ImGui::Text("Boost Remaining Time: %d", (int)data.playerBoostRemainingTime);
+
 	ImGui::Text("Bullets count: %d", (int)data.bullets.size());
 	ImGui::Text("Enemies count: %d", (int)data.enemies.size());
 	ImGui::Text("Items count: %d", (int)data.items.size());
@@ -577,16 +627,17 @@ bool gameLogic(float deltaTime)
 
 	ImGui::End();
 
+#pragma endregion
+
 
 	return true;
-#pragma endregion
 
 }
 
 //This function might not be be called if the program is forced closed
 void closeGame()
 {
-
+	
 
 
 }

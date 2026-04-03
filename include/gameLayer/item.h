@@ -5,6 +5,7 @@ enum class ItemTypes
 	none,
 	health,
 	armour,
+	damageBoost,
 	COUNT
 };
 
