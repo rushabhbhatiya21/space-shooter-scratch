@@ -36,7 +36,7 @@ struct GamePlayData {
 
 	float playerBaseDamage = 65.f;
 	float playerDamage = 65.f;       // enemies die faster
-	bool isDamageBoostActive = false;
+	//bool isDamageBoostActive = false;
 
 	float playerBulletSpeed = 900.f;  // snappy shooting
 
@@ -305,7 +305,7 @@ bool gameLogic(float deltaTime)
 		if (data.playerBoostRemainingTime <= 0)
 		{
 			data.playerDamage = data.playerBaseDamage;
-			data.isDamageBoostActive = false;
+			//data.isDamageBoostActive = false;
 		}
 
 	}
@@ -357,15 +357,15 @@ bool gameLogic(float deltaTime)
 						ItemTypes type = getRandomItemType();
 						//ItemTypes type = ItemTypes::damageBoost;
 
-						bool skipDrop = (type == ItemTypes::damageBoost && data.isDamageBoostActive);
+						//bool skipDrop = (type == ItemTypes::damageBoost && data.isDamageBoostActive);
 
-						if (!skipDrop)
-						{
-							Item hp;
-							hp.type = type;
-							hp.position = data.enemies[e].position;
-							data.items.push_back(hp);
-						}
+						//if (!skipDrop)
+						//{
+						Item hp;
+						hp.type = type;
+						hp.position = data.enemies[e].position;
+						data.items.push_back(hp);
+						//}
 
 						//kill enemy
 						data.enemies.erase(data.enemies.begin() + e);
@@ -503,11 +503,10 @@ bool gameLogic(float deltaTime)
 				break;
 
 			case ItemTypes::damageBoost:
-				data.playerDamage *= 2.f;
-
-	 data.playerDamage = glm::clamp(data.playerDamage, data.playerBaseDamage, data.playerBaseDamage * 2);
+				data.playerDamage = data.playerBaseDamage * 2.f;
+				data.playerDamage = glm::clamp(data.playerDamage, data.playerBaseDamage, data.playerBaseDamage * 2);
 				data.playerBoostRemainingTime = data.playerBoostTotalTime;
-				data.isDamageBoostActive = true;
+				//data.isDamageBoostActive = true;
 				break;
 
 			default:
