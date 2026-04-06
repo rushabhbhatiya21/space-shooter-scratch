@@ -44,6 +44,9 @@ struct GamePlayData {
 	float playerBoostTotalTime = 10.f;
 
 	float spawnEnemyTimerSeconds = 3.f;
+
+	float shakeTime = 0.0f;
+	float shakeStrength = 0.0f;
 };
 
 
@@ -70,6 +73,9 @@ TileRenderer tileRenderer[BACKGROUNDS];
 gl2d::Texture hpItemTexture;
 gl2d::Texture armourItemTexture;
 gl2d::Texture damageBoostItemTexture;
+
+gl2d::Texture bombTexture[5];
+gl2d::Texture explosionTexture;
 
 Sound shootSound;
 
@@ -116,6 +122,24 @@ void spawnEnemy()
 	data.enemies.push_back(e);
 }
 
+float shakeTimer = 0.0f;
+
+glm::vec2 getShakeOffset(float deltaTime)
+{
+	if (data.shakeTime <= 0.0f)
+		return { 0.0f, 0.0f };
+
+	data.shakeTime -= deltaTime;
+	shakeTimer += deltaTime * 50.0f;
+
+	float strength = data.shakeStrength * (data.shakeTime);
+
+	float x = sin(shakeTimer) * strength;
+	float y = cos(shakeTimer * 1.3f) * strength;
+
+	return { x, y };
+}
+
 #pragma endregion
 
 bool initGame()
@@ -153,6 +177,14 @@ bool initGame()
 	hpItemTexture.loadFromFile(RESOURCES_PATH "items/hp.png", true);
 	armourItemTexture.loadFromFile(RESOURCES_PATH "items/armour.png", true);
 	damageBoostItemTexture.loadFromFile(RESOURCES_PATH "items/damage.png", true);
+
+	explosionTexture.loadFromFile(RESOURCES_PATH "bombs/Explosion_02.png");
+
+	bombTexture[0].loadFromFile(RESOURCES_PATH "bombs/Bomb_01.png");
+	bombTexture[1].loadFromFile(RESOURCES_PATH "bombs/Bomb_01_1.png");
+	bombTexture[2].loadFromFile(RESOURCES_PATH "bombs/Bomb_01_2.png");
+	bombTexture[3].loadFromFile(RESOURCES_PATH "bombs/Bomb_01_3.png");
+	bombTexture[4].loadFromFile(RESOURCES_PATH "bombs/Bomb_01_4.png");
 
 	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
 	SetSoundVolume(shootSound, 0.3f);
@@ -261,6 +293,13 @@ bool gameLogic(float deltaTime)
 
 	renderer.currentCamera.follow(data.playerPos, deltaTime * 450, 10, 50, w, h, deltaTime);
 
+	// Apply shake on top of whatever follow() computed
+	glm::vec2 shake = getShakeOffset(deltaTime);
+	renderer.currentCamera.position += shake;  // += not =
+	renderer.currentCamera.zoom = (data.shakeTime > 0.f)
+		? 1.0f + (data.shakeStrength * 0.02f)
+		: 1.0f;
+
 #pragma endregion
 
 
@@ -317,6 +356,7 @@ bool gameLogic(float deltaTime)
 
 	constexpr float playerShipSize = 50.f;
 	constexpr float enemyShipSize = 50.f;
+	bool shouldTriggerShake = false;
 
 	if (platform::isLMousePressed())
 	{
@@ -349,8 +389,8 @@ bool gameLogic(float deltaTime)
 				if (intersectBullet(data.bullets[i].position, data.enemies[e].position, enemyShipSize))
 				{
 					//destoy bullet
-					data.bullets.erase(data.bullets.begin() + i);
 					data.enemies[e].health -= data.bullets[i].damage;
+					data.bullets.erase(data.bullets.begin() + i);
 					if (data.enemies[e].health <= 0)
 					{
 						//handle item before enemy erase
@@ -384,14 +424,16 @@ bool gameLogic(float deltaTime)
 			{
 				if (data.playerArmour > 0.f)
 				{
+					shouldTriggerShake = true;
 					if (data.playerArmour >= data.bullets[i].damage)
 					{
 						data.playerArmour -= data.bullets[i].damage;
 					}
 					else
 					{
+						float overflow = data.bullets[i].damage - data.playerArmour;
 						data.playerArmour = 0.f;
-						data.playerHealth -= glm::abs(data.bullets[i].damage - data.playerArmour);
+						data.playerHealth -= overflow;
 					}
 				}
 				else
@@ -405,6 +447,13 @@ bool gameLogic(float deltaTime)
 		}
 
 		data.bullets[i].update(deltaTime);
+	}
+
+	// When hit — just arm the shake
+	if (shouldTriggerShake)
+	{
+		data.shakeTime = 0.2f;
+		data.shakeStrength = 4.f;
 	}
 
 	if (data.playerHealth <= 0)
@@ -541,6 +590,15 @@ bool gameLogic(float deltaTime)
 		spaceShipAtlas.get(3, 0),
 		mouseDirection
 	);
+
+	float factor = 0.75f;
+
+	renderer.renderRectangle(
+		{ data.playerPos - glm::vec2(playerShipSize * factor, playerShipSize * factor), 100 * factor, 100 * factor},
+		explosionTexture,
+		{ 0.2f, 0.5f, 2.0f, 0.9f }
+	);
+
 #pragma endregion
 
 
